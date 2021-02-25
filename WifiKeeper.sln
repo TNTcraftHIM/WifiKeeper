@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31019.35
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WifiKeeper", "WifiKeeper.vcxproj", "{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Debug|x64.ActiveCfg = Debug|x64
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Debug|x64.Build.0 = Debug|x64
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Debug|x86.ActiveCfg = Debug|Win32
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Debug|x86.Build.0 = Debug|Win32
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Release|x64.ActiveCfg = Release|x64
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Release|x64.Build.0 = Release|x64
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Release|x86.ActiveCfg = Release|Win32
+		{AC171EAC-78B3-4DA6-9FFD-C82D4F01967B}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C92E3BE1-D921-4BB2-939A-21C0CC706CFA}
+	EndGlobalSection
+EndGlobal
