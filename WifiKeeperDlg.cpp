@@ -10,6 +10,7 @@
 #include "cstdlib"
 #include "iostream"
 #include "fstream"
+#include "Windows.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -51,6 +52,8 @@ BEGIN_MESSAGE_MAP(CWifiKeeperDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_TIME, &CWifiKeeperDlg::OnBnClickedCheckTime)
 	ON_EN_CHANGE(IDC_EDIT_TIME, &CWifiKeeperDlg::OnEnChangeEditTime)
 	ON_WM_CLOSE()
+	ON_WM_DESTROY()
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -110,47 +113,46 @@ HCURSOR CWifiKeeperDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void CheckWifi(CString Wifi_CheckTime) {
+inline bool file_exists(const std::string& name) {
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+}
+
+void CheckWifi() {
 	using namespace std;
 	CString powershell;
 	ofstream file;
-	remove("check.ps1");
-	file.open("check.ps1");
-	powershell = { _T(R"(
-get-process powershell | where-object {$_.MainWindowTitle -eq "WifiKeeper - Auto Check"} | stop-process
-$Host.UI.RawUI.WindowTitle = "WifiKeeper - Auto Check"
+	if (!file_exists("check.ps1")) {
+		file.open("check.ps1");
+		powershell = { _T(R"(
+$Host.UI.RawUI.WindowTitle = "WifiKeeper - Checking"
 $connectionProfile = [Windows.Networking.Connectivity.NetworkInformation,Windows.Networking.Connectivity,ContentType=WindowsRuntime]::GetInternetConnectionProfile()
 $tetheringManager = [Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager,Windows.Networking.NetworkOperators,ContentType=WindowsRuntime]::CreateFromConnectionProfile($connectionProfile)
-$FirstFlag='On'
-$Time=)") + Wifi_CheckTime + _T(R"( 
-if ($Time -eq '1') {
-    Write-Output "Auto Checking WIFI Every $Time Second "
-}
-else {
-    Write-Output "Auto Checking WIFI Every $Time Second(s) "
-}
-while ($true) {
-    if ($FirstFlag -eq 'On'){
-        $FirstFlag='Off'
+    if ($tetheringManager.TetheringOperationalState -eq 'Off') {
+        $tetheringManager.StartTetheringAsync() | Out-Null
     }
-    else{
-        if ($tetheringManager.TetheringOperationalState -eq 'Off') {
-            $tetheringManager.StartTetheringAsync() | Out-Null
-		    Get-Date
-            Write-Output 'Restarting WIFI'
-        }
-    }
-    Start-Sleep -s $Time
-}
 )")
-	};
-	file << (string)CW2A(powershell.GetString()) << endl;
-	file.close();
-	ShellExecute(0, _T("open"), _T("cmd.exe"), _T("/C attrib +h check.ps1"), 0, SW_HIDE);
-	ShellExecute(0, _T("open"), _T("cmd.exe"), _T("/C start PowerShell.exe -ExecutionPolicy Bypass -F check.ps1"), 0, SW_HIDE);
+		};
+		//get-process powershell | where-object {$_.MainWindowTitle -eq "WifiKeeper - Checking"} | stop-process
+		file << (string)CW2A(powershell.GetString()) << endl;
+		file.close();
+		DWORD attributes = GetFileAttributes(_T("check.ps1"));
+		SetFileAttributes(_T("check.ps1"), attributes + FILE_ATTRIBUTE_HIDDEN);
+	}
+	STARTUPINFO si = { sizeof(si) };
+	PROCESS_INFORMATION pi = { 0 };
+	TCHAR szApp[MAX_PATH] = _T("powershell -ExecutionPolicy Bypass -F check.ps1");
+	if (::CreateProcess(NULL, szApp, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+	{
+		CloseHandle(pi.hThread);
+		CloseHandle(pi.hProcess);
+	}
+	else {
+		MessageBox(NULL, _T("WIFI Check Failed"), _T("WifiKeeper"), MB_OK | MB_ICONERROR);
+	}
 }
 
-void StartWifi(CString Wifi_SSID, CString Wifi_PWD, CString Wifi_Time) {
+void StartWifi(CString Wifi_SSID, CString Wifi_PWD) {
 	using namespace std;
 	CString powershell;
 	ofstream file;
@@ -189,9 +191,20 @@ Await ($tetheringManager.StartTetheringAsync())([Windows.Networking.NetworkOpera
 	)") };
 	file << (string)CW2A(powershell.GetString()) << endl;
 	file.close();
-	ShellExecute(0, _T("open"), _T("cmd.exe"), _T("/C attrib +h start.ps1"), 0, SW_HIDE);
-	ShellExecute(0, _T("open"), _T("cmd.exe"), _T("/C start PowerShell.exe -windowstyle hidden -ExecutionPolicy Bypass -F start.ps1"), 0, SW_HIDE);
-	if ((string)CW2A(Wifi_Time.GetString()) > "0") CheckWifi(Wifi_Time);
+	DWORD attributes = GetFileAttributes(_T("start.ps1"));
+	SetFileAttributes(_T("start.ps1"), attributes + FILE_ATTRIBUTE_HIDDEN);
+	STARTUPINFO si = { sizeof(si) };
+	PROCESS_INFORMATION pi = { 0 };
+	TCHAR szApp[MAX_PATH] = _T("powershell -windowstyle hidden -ExecutionPolicy Bypass -F start.ps1");
+	if (::CreateProcess(NULL, szApp, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+	{
+		CloseHandle(pi.hThread);
+		CloseHandle(pi.hProcess);
+		MessageBox(NULL, _T("WIFI Starting"), _T("WifiKeeper"), MB_OK | MB_ICONINFORMATION);
+	}
+	else {
+		MessageBox(NULL, _T("WIFI Start Failed"), _T("WifiKeeper"), MB_OK | MB_ICONERROR);
+	}
 }
 
 void StopWifi() {
@@ -206,12 +219,23 @@ $connectionProfile = [Windows.Networking.Connectivity.NetworkInformation,Windows
 $tetheringManager = [Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager,Windows.Networking.NetworkOperators,ContentType=WindowsRuntime]::CreateFromConnectionProfile($connectionProfile)
 
 Await ($tetheringManager.StopTetheringAsync()) ([Windows.Networking.NetworkOperators.NetworkOperatorTetheringOperationResult])
-get-process powershell | where-object {$_.MainWindowTitle -eq "WifiKeeper - Auto Check"} | stop-process
 	)" };
 	file << (string)CW2A(powershell.GetString()) << endl;
 	file.close();
-	ShellExecute(0, _T("open"), _T("cmd.exe"), _T("/C attrib +h stop.ps1"), 0, SW_HIDE);
-	ShellExecute(0, _T("open"), _T("cmd.exe"), _T("/C start PowerShell.exe -windowstyle hidden -ExecutionPolicy Bypass -F stop.ps1"), 0, SW_HIDE);
+	DWORD attributes = GetFileAttributes(_T("stop.ps1"));
+	SetFileAttributes(_T("stop.ps1"), attributes + FILE_ATTRIBUTE_HIDDEN);
+	STARTUPINFO si = { sizeof(si) };
+	PROCESS_INFORMATION pi = { 0 };
+	TCHAR szApp[MAX_PATH] = _T("powershell -windowstyle hidden -ExecutionPolicy Bypass -F stop.ps1");
+	if (::CreateProcess(NULL, szApp, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+	{
+		CloseHandle(pi.hThread);
+		CloseHandle(pi.hProcess);
+		MessageBox(NULL, _T("WIFI Stopping"), _T("WifiKeeper"), MB_OK | MB_ICONINFORMATION);
+	}
+	else {
+		MessageBox(NULL, _T("WIFI Stop Failed"), _T("WifiKeeper"), MB_OK | MB_ICONERROR);
+	}
 }
 
 void CWifiKeeperDlg::OnBnClickedStart()
@@ -225,21 +249,32 @@ void CWifiKeeperDlg::OnBnClickedStart()
 	GetDlgItem(IDC_EDIT_TIME)->GetWindowText(Wifi_Time);
 	if (Wifi_SSID != "") {
 		if (Wifi_PWD != "" && Wifi_PWD.GetLength() >= 8) {
-			if (CheckState != BST_CHECKED || (string)CW2A(Wifi_Time.GetString()) <= "0") Wifi_Time = _T("0");
-			StartWifi(Wifi_SSID,Wifi_PWD,Wifi_Time);
+			if (CheckState != BST_CHECKED || (string)CW2A(Wifi_Time.GetString()) <= "0") {
+				KillTimer(1);
+				SetWindowText(_T("WifiKeeper"));
+			}
+			else {
+				UINT Wifi_Timer = 1000 * atoi(CW2A(Wifi_Time.GetString()));
+				KillTimer(1);
+				SetTimer(1, Wifi_Timer, NULL);
+				SetWindowText(_T("WifiKeeper - Auto Check Enabled"));
+			}
+			StartWifi(Wifi_SSID,Wifi_PWD);
 		}
 		else {
-			MessageBox(_T("invalid WIFI password\n(password need at least 8 characters)"));
+			MessageBoxA(NULL, (LPCSTR)"Invalid WIFI Password\n(password need at least 8 characters)", (LPCSTR)"WifiKeeper", MB_OK | MB_ICONWARNING);
 		}
 	}
 	else {
-		MessageBox(_T("invalid WIFI SSID"));
+		MessageBoxA(NULL, (LPCSTR)"Invalid WIFI Name", (LPCSTR)"WifiKeeper", MB_OK | MB_ICONWARNING);
 	}
 }
 
 void CWifiKeeperDlg::OnBnClickedStop()
 {
 	StopWifi();
+	KillTimer(1);
+	SetWindowText(_T("WifiKeeper"));
 }
 
 void CWifiKeeperDlg::OnBnClickedCheckTime()
@@ -263,11 +298,28 @@ void CWifiKeeperDlg::OnEnChangeEditTime()
 
 void CWifiKeeperDlg::OnClose()
 {
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	using namespace std;
 	ofstream file;
 	remove("start.ps1");
 	remove("stop.ps1");
 	remove("check.ps1");
 	CDialogEx::OnClose();
+}
+
+
+void CWifiKeeperDlg::OnDestroy()
+{
+	CDialogEx::OnDestroy();
+	using namespace std;
+	ofstream file;
+	remove("start.ps1");
+	remove("stop.ps1");
+	remove("check.ps1");
+}
+
+
+void CWifiKeeperDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	CheckWifi();
+	CDialogEx::OnTimer(nIDEvent);
 }
