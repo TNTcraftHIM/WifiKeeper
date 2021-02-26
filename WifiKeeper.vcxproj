@@ -204,7 +204,6 @@
     <ResourceCompile Include="WifiKeeper.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\Desktop\test.ps1" />
     <None Include="res\WifiKeeper.rc2" />
   </ItemGroup>
   <ItemGroup>

@@ -54,7 +54,6 @@
     <None Include="res\WifiKeeper.rc2">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="..\..\..\Desktop\test.ps1" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\WifiKeeper.ico">
