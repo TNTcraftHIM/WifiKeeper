@@ -211,19 +211,20 @@ void StopWifi() {
 	using namespace std;
 	CString powershell;
 	ofstream file;
-	remove("stop.ps1");
-	file.open("stop.ps1");
-	powershell = { R"(
+	if (!file_exists("stop.ps1")) {
+		file.open("stop.ps1");
+		powershell = { R"(
 $Host.UI.RawUI.WindowTitle = "WifiKeeper - Stopping"
 $connectionProfile = [Windows.Networking.Connectivity.NetworkInformation,Windows.Networking.Connectivity,ContentType=WindowsRuntime]::GetInternetConnectionProfile()
 $tetheringManager = [Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager,Windows.Networking.NetworkOperators,ContentType=WindowsRuntime]::CreateFromConnectionProfile($connectionProfile)
 
 Await ($tetheringManager.StopTetheringAsync()) ([Windows.Networking.NetworkOperators.NetworkOperatorTetheringOperationResult])
 	)" };
-	file << (string)CW2A(powershell.GetString()) << endl;
-	file.close();
-	DWORD attributes = GetFileAttributes(_T("stop.ps1"));
-	SetFileAttributes(_T("stop.ps1"), attributes + FILE_ATTRIBUTE_HIDDEN);
+		file << (string)CW2A(powershell.GetString()) << endl;
+		file.close();
+		DWORD attributes = GetFileAttributes(_T("stop.ps1"));
+		SetFileAttributes(_T("stop.ps1"), attributes + FILE_ATTRIBUTE_HIDDEN);
+	}
 	STARTUPINFO si = { sizeof(si) };
 	PROCESS_INFORMATION pi = { 0 };
 	TCHAR szApp[MAX_PATH] = _T("powershell -windowstyle hidden -ExecutionPolicy Bypass -F stop.ps1");
@@ -306,7 +307,6 @@ void CWifiKeeperDlg::OnClose()
 	CDialogEx::OnClose();
 }
 
-
 void CWifiKeeperDlg::OnDestroy()
 {
 	CDialogEx::OnDestroy();
@@ -316,7 +316,6 @@ void CWifiKeeperDlg::OnDestroy()
 	remove("stop.ps1");
 	remove("check.ps1");
 }
-
 
 void CWifiKeeperDlg::OnTimer(UINT_PTR nIDEvent)
 {
