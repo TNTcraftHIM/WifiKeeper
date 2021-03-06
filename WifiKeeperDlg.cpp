@@ -70,6 +70,8 @@ BOOL CWifiKeeperDlg::OnInitDialog()
 
 	// Default Settings
 	GetDlgItem(IDC_EDIT_TIME)->SetWindowText(_T("300"));
+	GetDlgItem(IDC_EDIT_SSID)->SetWindowText(_T("WifiKeeper"));
+	GetDlgItem(IDC_EDIT_PWD)->SetWindowText(_T("0123456789"));
 	CButton* m_ctlCheck = (CButton*)GetDlgItem(IDC_CHECK_TIME);
 	int CheckState = m_ctlCheck->GetCheck();
 	m_ctlCheck->SetCheck(1);
